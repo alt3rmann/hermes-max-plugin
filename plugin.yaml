@@ -1,0 +1,45 @@
+name: max-platform
+label: MAX
+kind: platform
+version: 0.1.0
+description: >
+  MAX messenger (max.ru / VK group) platform adapter for Hermes Agent.
+  Receives messages via Long Polling (GET /updates) and sends replies via
+  POST /messages. No external SDK — only httpx (already a Hermes dependency).
+
+  Supports text messages with Markdown formatting, image/file sending via
+  two-step upload (POST /uploads → token → attachment), and per-user
+  authorization via allowlist.
+author: alt3rmann
+
+requires_env:
+  - name: MAX_BOT_TOKEN
+    description: "MAX bot token from MasterBot (platform-api2.max.ru)"
+    prompt: "MAX bot token"
+    password: true
+
+optional_env:
+  - name: MAX_ALLOWED_USERS
+    description: "Comma-separated MAX user IDs allowed to talk to the bot"
+    prompt: "Allowed user IDs (comma-separated, leave empty to use allow_all)"
+    password: false
+  - name: MAX_ALLOW_ALL_USERS
+    description: "Allow any MAX user (dev only — disables allowlist)"
+    prompt: "Allow all users? (true/false)"
+    password: false
+  - name: MAX_HOME_CHANNEL
+    description: "Default chat_id for cron / notification delivery"
+    prompt: "Home channel chat_id (or empty)"
+    password: false
+  - name: MAX_HOME_CHANNEL_NAME
+    description: "Human label for the home channel"
+    prompt: "Home channel display name (or empty)"
+    password: false
+  - name: MAX_MARKDOWN
+    description: "Send replies with format=markdown (true/false, default: true)"
+    prompt: "Enable markdown formatting? (true/false)"
+    password: false
+  - name: MAX_POLL_TIMEOUT
+    description: "Long polling timeout in seconds (default: 30)"
+    prompt: "Poll timeout seconds"
+    password: false
