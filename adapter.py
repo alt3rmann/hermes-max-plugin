@@ -665,10 +665,27 @@ class MaxAdapter(BasePlatformAdapter):
             return SendResult(success=False, error="HTTP client not initialized")
 
         text = _truncate(content)
+
+        # Detect /commands pagination hints from Hermes and replace with buttons
+        nav_buttons = self._extract_commands_nav_buttons(text)
+        if nav_buttons:
+            import re
+            # Remove the nav line: e.g. "`/commands 1` ← prev | next → `/commands 3`"
+            text = re.sub(r"`/commands\s+\d+`\s*←[^\n]*", "", text)
+            text = re.sub(r"next\s*→\s*`/commands\s+\d+`[^\n]*", "", text)
+            # Clean up trailing separator and whitespace
+            text = re.sub(r"\s*\|\s*$", "", text, flags=re.MULTILINE)
+            text = text.rstrip()
+
         # Build body — format only, recipient goes in query params
         body: Dict[str, Any] = {"text": text}
         if self._markdown:
             body["format"] = "markdown"
+        if nav_buttons:
+            body["attachments"] = [{
+                "type": "inline_keyboard",
+                "payload": {"buttons": [nav_buttons]},
+            }]
 
         # Prefer metadata hint, then fall back to stored chat_type
         meta = metadata or {}
@@ -679,6 +696,37 @@ class MaxAdapter(BasePlatformAdapter):
             params = {"chat_id": chat_id}
 
         return await self._do_send(body, params)
+
+    def _extract_commands_nav_buttons(
+        self, text: str
+    ) -> List[Dict[str, Any]]:
+        """Detect Hermes /commands pagination hints and return nav button row.
+
+        Hermes (en locale) appends:
+          `/commands {page}` ← prev  |  next → `/commands {page}`
+        joined with " | " on one line.
+        """
+        import re
+        buttons: List[Dict[str, Any]] = []
+        # prev: `/commands N` ← prev
+        prev_m = re.search(r"`/commands\s+(\d+)`\s*←", text)
+        # next: next → `/commands N`
+        next_m = re.search(r"→\s*`/commands\s+(\d+)`", text)
+        if not prev_m and not next_m:
+            return []
+        if prev_m:
+            buttons.append({
+                "type": "message",
+                "text": f"← стр. {prev_m.group(1)}",
+                "payload": f"/commands {prev_m.group(1)}",
+            })
+        if next_m:
+            buttons.append({
+                "type": "message",
+                "text": f"стр. {next_m.group(1)} →",
+                "payload": f"/commands {next_m.group(1)}",
+            })
+        return buttons
 
     async def send_image(
         self,
