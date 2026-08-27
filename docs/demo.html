@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAX Model Selector Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 420px;
+            width: 100%;
+        }
+
+        .phone-frame {
+            background: #1a1a1a;
+            border-radius: 30px;
+            padding: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .screen {
+            background: #0a0a0a;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .header-title {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat {
+            padding: 16px;
+            min-height: 500px;
+            background: #0a0a0a;
+        }
+
+        .message {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-text {
+            color: #e0e0e0;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .button {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button.wide {
+            width: 100%;
+        }
+
+        .button.list {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .button.list:hover {
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
+        }
+
+        .response {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #4ade80;
+            font-size: 14px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+            display: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .response.show {
+            display: block;
+        }
+
+        .title {
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">MAX Model Selector <span class="badge">DEMO</span></h1>
+        
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="header">
+                    <div class="header-title">Hermes Agent</div>
+                </div>
+                
+                <div class="chat">
+                    <div class="message">
+                        <div class="message-text">Выберите модель:</div>
+                        
+                        <div class="keyboard">
+                            <div class="button-row">
+                                <button class="button" onclick="selectModel('GPT-5.5')">
+                                    <span>🔥</span>
+                                    <span>GPT-5.5</span>
+                                </button>
+                                <button class="button" onclick="selectModel('GPT-4.5')">
+                                    <span>💬</span>
+                                    <span>GPT-4.5</span>
+                                </button>
+                            </div>
+                            
+                            <div class="button-row">
+                                <button class="button" onclick="selectModel('Claude Sonnet 4.5')">
+                                    <span>⚡</span>
+                                    <span>Claude Sonnet 4.5</span>
+                                </button>
+                                <button class="button" onclick="selectModel('GPT-4o')">
+                                    <span>💡</span>
+                                    <span>GPT-4o</span>
+                                </button>
+                            </div>
+                            
+                            <div class="button-row">
+                                <button class="button" onclick="selectModel('Claude Opus 4')">
+                                    <span>🎯</span>
+                                    <span>Claude Opus 4</span>
+                                </button>
+                                <button class="button" onclick="selectModel('GPT-4o Mini')">
+                                    <span>🚀</span>
+                                    <span>GPT-4o Mini</span>
+                                </button>
+                            </div>
+                            
+                            <div class="button-row">
+                                <button class="button" onclick="selectModel('Claude Haiku 4')">
+                                    <span>✨</span>
+                                    <span>Claude Haiku 4</span>
+                                </button>
+                            </div>
+                            
+                            <div class="button-row">
+                                <button class="button list wide" onclick="showAll()">
+                                    <span>📋</span>
+                                    <span>Показать все модели</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="response" class="response"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectModel(model) {
+            const response = document.getElementById('response');
+            response.textContent = `✓ Switched to ${model}`;
+            response.classList.add('show');
+            
+            setTimeout(() => {
+                response.classList.remove('show');
+            }, 3000);
+        }
+        
+        function showAll() {
+            const response = document.getElementById('response');
+            response.innerHTML = `
+                Available models:<br>
+                gpt-5.5, gpt-4.5, claude-sonnet-4-5,<br>
+                gpt-4o, claude-opus-4, gpt-4o-mini,<br>
+                claude-haiku-4, and more...
+            `;
+            response.classList.add('show');
+            
+            setTimeout(() => {
+                response.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
