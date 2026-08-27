@@ -717,13 +717,13 @@ class MaxAdapter(BasePlatformAdapter):
         if prev_m:
             buttons.append({
                 "type": "message",
-                "text": f"← стр. {prev_m.group(1)}",
+                "text": f"/commands {prev_m.group(1)}",
                 "payload": f"/commands {prev_m.group(1)}",
             })
         if next_m:
             buttons.append({
                 "type": "message",
-                "text": f"стр. {next_m.group(1)} →",
+                "text": f"/commands {next_m.group(1)}",
                 "payload": f"/commands {next_m.group(1)}",
             })
         return buttons
