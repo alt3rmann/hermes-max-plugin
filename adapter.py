@@ -402,7 +402,8 @@ class MaxAdapter(BasePlatformAdapter):
             await self.handle_message(event)
             return
 
-        # /model without args — show all models as inline buttons, 3 per row
+        # /model without args — show all models as inline buttons, 2 per row
+        # Model IDs must match exactly what the inference endpoint returns
         models = [
             "gpt-5.5",
             "gpt-5.6-terra",
@@ -410,16 +411,21 @@ class MaxAdapter(BasePlatformAdapter):
             "gpt-5.6-sol",
             "gpt-5.4",
             "gpt-5.4-mini",
-            "gpt-4.5",
-            "gpt-4o",
-            "gpt-4o-mini",
+            "gpt-5.3-codex-spark",
             "claude-opus-5",
-            "claude-opus-4",
-            "claude-opus-4-5",
-            "claude-sonnet-5",
+            "claude-opus-4-20250514",
+            "claude-opus-4-5-20251101",
+            "claude-opus-4-6",
+            "claude-opus-4-7",
+            "claude-opus-4-8",
+            "claude-sonnet-4-20250514",
+            "claude-sonnet-4-5-20250929",
             "claude-sonnet-4-6",
-            "claude-sonnet-4-5",
-            "claude-haiku-4-5",
+            "claude-sonnet-5",
+            "claude-fable-5",
+            "claude-haiku-4-5-20251001",
+            "claude-3-7-sonnet-20250219",
+            "claude-3-5-haiku-20241022",
         ]
 
         buttons: List[List[Dict[str, Any]]] = []
