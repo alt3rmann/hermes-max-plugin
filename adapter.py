@@ -426,7 +426,7 @@ class MaxAdapter(BasePlatformAdapter):
         row: List[Dict[str, Any]] = []
         for model_id in models:
             row.append({"type": "callback", "text": model_id, "payload": f"model:{model_id}"})
-            if len(row) == 3:
+            if len(row) == 2:
                 buttons.append(row)
                 row = []
         if row:
