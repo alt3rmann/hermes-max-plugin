@@ -378,6 +378,51 @@ class MaxAdapter(BasePlatformAdapter):
 
         await self.handle_message(event)
 
+    async def _fetch_llm_models(self) -> List[str]:
+        """Fetch available model IDs from the configured LLM provider's /v1/models endpoint.
+
+        Reads base_url and api_key from ~/.hermes/config.yaml (the Hermes config file
+        that lives in the persistent volume). Falls back to an empty list on any error.
+        """
+        if not HTTPX_AVAILABLE or not self._http:
+            return []
+
+        try:
+            import yaml  # bundled with Hermes venv
+
+            hermes_home = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+            config_path = os.path.join(hermes_home, "config.yaml")
+
+            with open(config_path) as f:
+                cfg = yaml.safe_load(f) or {}
+
+            model_cfg = cfg.get("model") or {}
+            base_url = (model_cfg.get("base_url") or "").rstrip("/")
+            api_key = model_cfg.get("api_key") or ""
+
+            if not base_url:
+                logger.warning("[max] _fetch_llm_models: no base_url in config.yaml")
+                return []
+
+            resp = await self._http.get(
+                f"{base_url}/models",
+                headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
+                timeout=10.0,
+            )
+            if resp.status_code != 200:
+                logger.warning("[max] /v1/models returned HTTP %s", resp.status_code)
+                return []
+
+            data = resp.json()
+            ids = [m["id"] for m in data.get("data", []) if m.get("id")]
+            ids.sort()
+            logger.info("[max] fetched %d models from %s", len(ids), base_url)
+            return ids
+
+        except Exception as exc:
+            logger.warning("[max] _fetch_llm_models failed: %s", exc)
+            return []
+
     async def _handle_model_command(self, chat_id: str, text: str) -> None:
         """Handle /model command by showing inline keyboard with model choices."""
         parts = text.split()
@@ -402,31 +447,29 @@ class MaxAdapter(BasePlatformAdapter):
             await self.handle_message(event)
             return
 
-        # /model without args — show all models as inline buttons, 2 per row
+        # /model without args — fetch live model list and show as inline buttons, 2 per row
         # Model IDs must match exactly what the inference endpoint returns
-        models = [
-            "gpt-5.5",
-            "gpt-5.6-terra",
-            "gpt-5.6-luna",
-            "gpt-5.6-sol",
-            "gpt-5.4",
-            "gpt-5.4-mini",
-            "gpt-5.3-codex-spark",
-            "claude-opus-5",
-            "claude-opus-4-20250514",
-            "claude-opus-4-5-20251101",
-            "claude-opus-4-6",
-            "claude-opus-4-7",
-            "claude-opus-4-8",
-            "claude-sonnet-4-20250514",
-            "claude-sonnet-4-5-20250929",
-            "claude-sonnet-4-6",
-            "claude-sonnet-5",
-            "claude-fable-5",
-            "claude-haiku-4-5-20251001",
-            "claude-3-7-sonnet-20250219",
-            "claude-3-5-haiku-20241022",
-        ]
+        models = await self._fetch_llm_models()
+
+        if not models:
+            # Fallback: pass to Hermes which will show its own /model output
+            source = self.build_source(
+                chat_id=chat_id,
+                chat_name=chat_id,
+                chat_type=self._chat_types.get(chat_id, "dm"),
+                user_id=chat_id,
+                user_name=chat_id,
+            )
+            event = MessageEvent(
+                text="/model",
+                message_type=MessageType.TEXT,
+                source=source,
+                message_id=str(uuid.uuid4().hex),
+                raw_message={},
+                timestamp=datetime.now(tz=timezone.utc),
+            )
+            await self.handle_message(event)
+            return
 
         buttons: List[List[Dict[str, Any]]] = []
         row: List[Dict[str, Any]] = []
