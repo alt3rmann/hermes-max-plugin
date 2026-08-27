@@ -8,6 +8,8 @@ This plugin lets Hermes receive and send messages in MAX using **Long Polling** 
 
 - Long Polling message intake via `GET /updates`
 - Text replies via `POST /messages`
+- **Inline keyboard** support for interactive UI
+- **Enhanced `/model` command** with visual model selector
 - DM and group routing
 - File/image sending via MAX upload flow
 - User allowlist support
@@ -18,9 +20,26 @@ This plugin lets Hermes receive and send messages in MAX using **Long Polling** 
 
 - ✅ Long Polling
 - ✅ MAX direct messages
+- ✅ Inline keyboards with callback buttons
+- ✅ Interactive model selection UI
 - ✅ Hermes gateway integration
 - ✅ User-service deployment on macOS
 - ❌ Webhook mode (not implemented yet)
+
+## Inline Keyboard Support
+
+The plugin now supports MAX inline keyboards with callback buttons. When you type `/model` without arguments, the bot shows an interactive menu with popular models:
+
+```
+Выберите модель:
+[🔥 GPT-5.5]  [💬 GPT-4.5]
+[⚡ Claude Sonnet 4.5]  [💡 GPT-4o]
+[🎯 Claude Opus 4]  [🚀 GPT-4o Mini]
+[✨ Claude Haiku 4]
+[📋 Показать все модели]
+```
+
+Click any button to instantly switch to that model — no typing required!
 
 ## Repository layout
 
