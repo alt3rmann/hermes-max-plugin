@@ -56,16 +56,32 @@ except Exception as _ts_exc:
     _TRUSTSTORE_ACTIVE = False
     logger.warning("[max] truststore not available (%s), using default ssl", _ts_exc)
 
-from gateway.config import Platform, PlatformConfig
-from gateway.platforms.base import (
-    BasePlatformAdapter,
-    MessageEvent,
-    MessageType,
-    SendResult,
-)
+try:
+    from gateway.config import Platform, PlatformConfig
+    from gateway.platforms.base import (
+        BasePlatformAdapter,
+        MessageEvent,
+        MessageType,
+        SendResult,
+    )
+except ImportError:
+    # Stubs for environments where gateway is not on sys.path (plugin scan)
+    Platform = None  # type: ignore[assignment]
+    PlatformConfig = object  # type: ignore[assignment,misc]
+    BasePlatformAdapter = object  # type: ignore[assignment]
+    MessageEvent = None  # type: ignore[assignment]
+    MessageType = None  # type: ignore[assignment]
+    SendResult = None  # type: ignore[assignment]
 
-from agent.secret_scope import UnscopedSecretError as _UnscopedSecretError
-from agent.secret_scope import get_secret as _scoped_get_secret
+try:
+    from agent.secret_scope import UnscopedSecretError as _UnscopedSecretError
+    from agent.secret_scope import get_secret as _scoped_get_secret
+    _SECRET_SCOPE_AVAILABLE = True
+except ImportError:
+    _SECRET_SCOPE_AVAILABLE = False
+    _UnscopedSecretError = Exception  # type: ignore[assignment,misc]
+    def _scoped_get_secret(name: str, default: str = "") -> str:  # type: ignore[misc]
+        return os.getenv(name, default) or default
 
 # ---------------------------------------------------------------------------
 # Constants
