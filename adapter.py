@@ -279,6 +279,8 @@ class MaxAdapter(BasePlatformAdapter):
 
         if update_type == "message_created":
             await self._on_message(update)
+        elif update_type == "message_callback":
+            await self._on_callback(update)
         elif update_type == "bot_started":
             await self._on_bot_started(update)
         elif update_type == "bot_added":
@@ -298,6 +300,150 @@ class MaxAdapter(BasePlatformAdapter):
         if not chat_id:
             return
         await self.send(chat_id, "Привет! Я Hermes — твой AI-ассистент. Чем могу помочь?")
+
+    async def _on_callback(self, update: Dict[str, Any]) -> None:
+        """Handle message_callback update from inline keyboard buttons."""
+        callback = update.get("callback") or {}
+        payload = callback.get("payload", "")
+        
+        message = update.get("message") or {}
+        sender = message.get("sender") or {}
+        recipient = message.get("recipient") or {}
+        
+        chat_type_raw = recipient.get("chat_type") or "dialog"
+        chat_type = "dm" if chat_type_raw == "dialog" else "group"
+        
+        if chat_type == "dm":
+            chat_id = str(sender.get("user_id") or "")
+        else:
+            chat_id = str(recipient.get("chat_id") or "")
+            
+        if not chat_id:
+            return
+            
+        self._chat_types[chat_id] = chat_type
+        user_id = str(sender.get("user_id") or "")
+        user_name = sender.get("name") or sender.get("username") or user_id
+        
+        # Handle model selection callbacks
+        if payload.startswith("model:"):
+            model_name = payload.split(":", 1)[1]
+            logger.info("[max] User %s selected model: %s", user_name, model_name)
+            
+            # Create synthetic /model command message
+            source = self.build_source(
+                chat_id=chat_id,
+                chat_name=chat_id,
+                chat_type=chat_type,
+                user_id=user_id,
+                user_name=user_name,
+            )
+            
+            event = MessageEvent(
+                text=f"/model {model_name}",
+                message_type=MessageType.TEXT,
+                source=source,
+                message_id=str(uuid.uuid4().hex),
+                raw_message=update,
+                timestamp=datetime.now(tz=timezone.utc),
+            )
+            
+            await self.handle_message(event)
+            return
+
+    async def _handle_model_command(self, chat_id: str, text: str) -> None:
+        """Handle /model command by showing inline keyboard with model choices."""
+        parts = text.split()
+        
+        # If model name provided, process it normally
+        if len(parts) > 1:
+            # Forward to Hermes gateway for actual model switching
+            source = self.build_source(
+                chat_id=chat_id,
+                chat_name=chat_id,
+                chat_type=self._chat_types.get(chat_id, "dm"),
+                user_id=chat_id,
+                user_name=chat_id,
+            )
+            
+            event = MessageEvent(
+                text=text,
+                message_type=MessageType.TEXT,
+                source=source,
+                message_id=str(uuid.uuid4().hex),
+                raw_message={},
+                timestamp=datetime.now(tz=timezone.utc),
+            )
+            
+            await self.handle_message(event)
+            return
+        
+        # /model without args — show inline keyboard with popular models
+        models = {
+            "gpt-5.5": "🔥 GPT-5.5",
+            "gpt-4.5": "💬 GPT-4.5",
+            "claude-sonnet-4-5": "⚡ Claude Sonnet 4.5",
+            "gpt-4o": "💡 GPT-4o",
+            "claude-opus-4": "🎯 Claude Opus 4",
+            "gpt-4o-mini": "🚀 GPT-4o Mini",
+            "claude-haiku-4": "✨ Claude Haiku 4",
+        }
+        
+        buttons = []
+        row = []
+        for model_id, model_label in models.items():
+            row.append({
+                "type": "callback",
+                "text": model_label,
+                "payload": f"model:{model_id}"
+            })
+            if len(row) == 2:  # 2 buttons per row
+                buttons.append(row)
+                row = []
+        
+        if row:  # Add remaining buttons
+            buttons.append(row)
+        
+        # Add "Show all models" button
+        buttons.append([{
+            "type": "message",
+            "text": "📋 Показать все модели",
+            "payload": "/model list"
+        }])
+        
+        await self._send_with_keyboard(
+            chat_id=chat_id,
+            text="Выберите модель:",
+            buttons=buttons
+        )
+
+    async def _send_with_keyboard(
+        self,
+        chat_id: str,
+        text: str,
+        buttons: List[List[Dict[str, Any]]]
+    ) -> SendResult:
+        """Send a message with inline keyboard."""
+        if not self._http:
+            return SendResult(success=False, error="HTTP client not initialized")
+        
+        chat_type = self._chat_types.get(chat_id, "dm")
+        params = {"user_id": chat_id} if chat_type == "dm" else {"chat_id": chat_id}
+        
+        body: Dict[str, Any] = {
+            "text": text,
+            "attachments": [{
+                "type": "inline_keyboard",
+                "payload": {
+                    "buttons": buttons
+                }
+            }]
+        }
+        
+        if self._markdown:
+            body["format"] = "markdown"
+        
+        return await self._do_send(body, params)
 
     async def _on_message(self, update: Dict[str, Any]) -> None:
         """Handle message_created update."""
@@ -376,6 +522,12 @@ class MaxAdapter(BasePlatformAdapter):
         )
 
         logger.debug("[max] Message from %s in %s: %s", user_name, chat_id, text[:80])
+        
+        # Intercept /model command to show inline keyboard
+        if text == "/model" or text.startswith("/model "):
+            await self._handle_model_command(chat_id, text)
+            return
+            
         await self.handle_message(event)
 
     # -- Deduplication ------------------------------------------------------
