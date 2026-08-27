@@ -209,7 +209,37 @@ class MaxAdapter(BasePlatformAdapter):
 
         self._mark_connected()
         self._poll_task = asyncio.create_task(self._poll_loop())
+
+        # Register bot command menu so the / autocomplete stays in sync
+        asyncio.create_task(self._register_commands())
+
         return True
+
+    async def _register_commands(self) -> None:
+        """Push the bot command menu to MAX so the / autocomplete is correct."""
+        commands = [
+            {"name": "new",      "description": "Новый чат"},
+            {"name": "model",    "description": "Выбрать модель"},
+            {"name": "sessions", "description": "Мои чаты"},
+            {"name": "resume",   "description": "Продолжить чат"},
+            {"name": "stop",     "description": "Остановить"},
+            {"name": "help",     "description": "Справка"},
+            {"name": "commands", "description": "Все команды"},
+        ]
+        try:
+            resp = await self._http.patch(
+                f"{API_BASE}/me/commands",
+                headers={**_auth_headers(self._token), "Content-Type": "application/json"},
+                content=json.dumps({"commands": commands}).encode(),
+                timeout=10.0,
+            )
+            if resp.status_code == 200:
+                logger.info("[max] Bot commands menu registered (%d commands)", len(commands))
+            else:
+                logger.warning("[max] Failed to register commands: HTTP %s %s",
+                               resp.status_code, resp.text[:100])
+        except Exception as exc:
+            logger.warning("[max] _register_commands failed: %s", exc)
 
     async def disconnect(self) -> None:
         self._running = False
